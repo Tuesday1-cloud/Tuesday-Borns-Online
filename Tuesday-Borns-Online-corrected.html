@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tuesday Borns Online</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{margin:0;background:#f3f6f9;color:#1d2935;font:16px Arial}header{background:#12304a;color:white;padding:20px;border-bottom:5px solid #e0b323}
+main{max-width:760px;margin:25px auto;padding:0 14px}.card{background:white;border:1px solid #dce4eb;border-radius:12px;padding:20px;margin-bottom:16px}
+input{display:block;width:100%;box-sizing:border-box;padding:12px;margin:8px 0 15px;border:1px solid #bdc9d4;border-radius:7px;font-size:16px}
+button{padding:12px 16px;border:0;border-radius:7px;background:#12304a;color:white;font-weight:bold;margin:4px 4px 4px 0}
+.err{display:none;background:#fff0f0;color:#9b1c1c;padding:12px;border-radius:7px;overflow-wrap:anywhere}.ok{display:none;background:#edfff4;color:#17613a;padding:12px;border-radius:7px}
+.small{color:#667788;font-size:13px;line-height:1.5}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.tile{padding:14px;background:#f7f9fb;border-radius:8px}.hidden{display:none}
+</style></head><body>
+<header><h2>Tuesday Borns Association</h2><div>Secure officer portal</div></header><main>
+<section id="login" class="card"><h3>Officer Login</h3><p class="small">Use the email and password for your President, Treasurer or Secretary account.</p>
+<form id="form"><label>Email address</label><input id="email" type="email" required autocomplete="username"><label>Password</label><input id="password" type="password" required autocomplete="current-password">
+<button id="signin">Sign in</button><button type="button" id="test">Test connection</button></form>
+<div id="err" class="err"></div><div id="ok" class="ok"></div></section>
+<section id="dashboard" class="card hidden"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap"><div><h3 id="hello">Dashboard</h3><p id="role" class="small"></p></div><button id="logout">Sign out</button></div>
+<div class="grid"><div class="tile">Members<h2 id="members">—</h2></div><div class="tile">Transactions<h2 id="transactions">—</h2></div><div class="tile">Meetings<h2 id="meetings">—</h2></div></div>
+<div class="grid"><div class="tile">Ordinary dues<h3>GH₵20</h3></div><div class="tile">Welfare dues<h3>GH₵10</h3></div><div class="tile">Opening balance<h3>Undetermined</h3></div></div>
+<p class="small">Members, payments and receipts, reports, meetings and uploads are planned modules and are not yet implemented.</p></section>
+</main><script>
+const URL='https://viikkhfqprmmerorbcxs.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpaWtraGZxcHJtbWVyb3JiY3hzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMTAxNjcsImV4cCI6MjEwOTc4NjE2N30.JKUMnZaOXCYF0RSgH827cZCgOZsrVnLEQ5vPfAobIZQ';
+const client=window.supabase.createClient(URL,KEY);
+const el=id=>document.getElementById(id), show=(id,msg)=>{el(id).textContent=msg;el(id).style.display='block'}, hide=id=>el(id).style.display='none';
+el('test').onclick=async()=>{hide('err');hide('ok');try{let r=await fetch(URL+'/rest/v1/',{headers:{apikey:KEY,Authorization:'Bearer '+KEY}});show('ok','Supabase received the API key. Test response: HTTP '+r.status+'.');}catch(e){show('err','Connection test failed: '+e.message)}};
+async function dashboard(user){let q=await client.from('profiles').select('full_name,role').eq('id',user.id).single();if(q.error)throw q.error;if(!q.data||!['president','treasurer','secretary'].includes(q.data.role))throw Error('Officer role not found in profiles.');el('hello').textContent='Welcome, '+(q.data.full_name||user.email);el('role').textContent='Role: '+q.data.role;let [a,b,c]=await Promise.all([client.from('members').select('*',{count:'exact',head:true}),client.from('transactions').select('*',{count:'exact',head:true}),client.from('meetings').select('*',{count:'exact',head:true})]);el('members').textContent=a.error?'—':a.count;el('transactions').textContent=b.error?'—':b.count;el('meetings').textContent=c.error?'—':c.count;el('login').classList.add('hidden');el('dashboard').classList.remove('hidden')}
+el('form').onsubmit=async e=>{e.preventDefault();hide('err');hide('ok');el('signin').disabled=true;try{let r=await client.auth.signInWithPassword({email:el('email').value.trim(),password:el('password').value});if(r.error)throw r.error;await dashboard(r.data.user)}catch(e){await client.auth.signOut();show('err',e.message||String(e))}finally{el('signin').disabled=false}};
+el('logout').onclick=async()=>{await client.auth.signOut();el('dashboard').classList.add('hidden');el('login').classList.remove('hidden');el('password').value=''};
+</script></body></html>
